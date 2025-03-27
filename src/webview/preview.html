@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plist Creator Preview</title>
+    <style>
+        body {
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--vscode-editor-background);
+            color: var(--vscode-editor-foreground);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--vscode-input-foreground);
+        }
+        input {
+            width: 100px;
+            padding: 5px;
+            margin-right: 10px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+        }
+        button {
+            padding: 8px 16px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        .preview-container {
+            margin-top: 20px;
+            border: 1px solid var(--vscode-input-border);
+            padding: 10px;
+            background-color: var(--vscode-editor-background);
+        }
+        .preview-grid {
+            display: grid;
+            gap: 2px;
+            background-color: var(--vscode-input-border);
+            position: relative;
+        }
+        .preview-cell {
+            background-color: var(--vscode-editor-background);
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--vscode-editor-foreground);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--vscode-input-border);
+        }
+        .preview-cell.selected {
+            background-color: var(--vscode-focusBorder);
+        }
+        .preview-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .frame-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-input-border);
+        }
+        .frame-info h3 {
+            margin-top: 0;
+            color: var(--vscode-editor-foreground);
+        }
+        .frame-info pre {
+            background-color: var(--vscode-editor-background);
+            padding: 10px;
+            border: 1px solid var(--vscode-input-border);
+            overflow-x: auto;
+        }
+        .image-container {
+            margin-bottom: 20px;
+            text-align: center;
+            position: relative;
+        }
+        .image-container img {
+            max-width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+        }
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .grid-line {
+            position: absolute;
+            background-color: var(--vscode-focusBorder);
+            opacity: 0.5;
+        }
+        .grid-line.vertical {
+            width: 1px;
+        }
+        .grid-line.horizontal {
+            height: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-group">
+            <label>Rows: <input type="number" id="rows" min="1" value="1"></label>
+            <label>Columns: <input type="number" id="cols" min="1" value="1"></label>
+            <button id="updatePreview">Update Preview</button>
+            <button id="createPlist">Create Plist</button>
+        </div>
+        <div class="image-container">
+            <img id="sourceImage" src="" alt="Source Image">
+            <div id="gridOverlay" class="grid-overlay"></div>
+        </div>
+        <div class="preview-container">
+            <div id="previewGrid" class="preview-grid"></div>
+        </div>
+        <div class="frame-info">
+            <h3>Frame Information</h3>
+            <pre id="frameInfo"></pre>
+        </div>
+    </div>
+    <script>
+        const vscode = acquireVsCodeApi();
+        let currentImage = null;
+        let currentRows = 1;
+        let currentCols = 1;
+
+        function updateGridOverlay() {
+            const container = document.querySelector('.image-container');
+            const image = document.getElementById('sourceImage');
+            const overlay = document.getElementById('gridOverlay');
+            
+            // Clear existing grid lines
+            overlay.innerHTML = '';
+            
+            // Get image dimensions
+            const rect = image.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+            
+            // Calculate frame dimensions
+            const frameWidth = rect.width / currentCols;
+            const frameHeight = rect.height / currentRows;
+            
+            // Add vertical lines
+            for (let i = 1; i < currentCols; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line vertical';
+                line.style.left = `${(i * frameWidth)}px`;
+                line.style.height = `${rect.height}px`;
+                overlay.appendChild(line);
+            }
+            
+            // Add horizontal lines
+            for (let i = 1; i < currentRows; i++) {
+                const line = document.createElement('div');
+                line.className = 'grid-line horizontal';
+                line.style.top = `${(i * frameHeight)}px`;
+                line.style.width = `${rect.width}px`;
+                overlay.appendChild(line);
+            }
+        }
+
+        function updatePreview() {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
+            
+            if (rows < 1 || cols < 1) {
+                vscode.postMessage({ type: 'error', message: 'Rows and columns must be positive numbers' });
+                return;
+            }
+
+            currentRows = rows;
+            currentCols = cols;
+            
+            const grid = document.getElementById('previewGrid');
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            grid.innerHTML = '';
+
+            const image = document.getElementById('sourceImage');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = image.naturalWidth;
+            canvas.height = image.naturalHeight;
+            ctx.drawImage(image, 0, 0);
+
+            const frameWidth = image.naturalWidth / cols;
+            const frameHeight = image.naturalHeight / rows;
+
+            for (let i = 0; i < rows * cols; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'preview-cell';
+                
+                const row = Math.floor(i / cols);
+                const col = i % cols;
+                
+                // Create frame preview
+                const frameCanvas = document.createElement('canvas');
+                frameCanvas.width = frameWidth;
+                frameCanvas.height = frameHeight;
+                const frameCtx = frameCanvas.getContext('2d');
+                
+                // Draw the frame from the source image
+                frameCtx.drawImage(
+                    image,
+                    col * frameWidth, row * frameHeight, // Source position
+                    frameWidth, frameHeight, // Source size
+                    0, 0, // Destination position
+                    frameWidth, frameHeight // Destination size
+                );
+                
+                const frameImg = document.createElement('img');
+                frameImg.src = frameCanvas.toDataURL();
+                frameImg.style.width = '100%';
+                frameImg.style.height = '100%';
+                frameImg.style.objectFit = 'contain';
+                
+                cell.appendChild(frameImg);
+                cell.onclick = () => selectFrame(i);
+                grid.appendChild(cell);
+            }
+
+            updateFrameInfo(0);
+            updateGridOverlay();
+        }
+
+        function selectFrame(index) {
+            const cells = document.querySelectorAll('.preview-cell');
+            cells.forEach(cell => cell.classList.remove('selected'));
+            cells[index].classList.add('selected');
+            updateFrameInfo(index);
+        }
+
+        function updateFrameInfo(index) {
+            const row = Math.floor(index / currentCols);
+            const col = index % currentCols;
+            const frameName = `frame_${row}_${col}.png`;
+            
+            const frameInfo = {
+                name: frameName,
+                position: {
+                    x: col,
+                    y: row
+                },
+                size: {
+                    width: Math.floor(currentImage.width / currentCols),
+                    height: Math.floor(currentImage.height / currentRows)
+                }
+            };
+
+            document.getElementById('frameInfo').textContent = JSON.stringify(frameInfo, null, 2);
+        }
+
+        document.getElementById('updatePreview').addEventListener('click', updatePreview);
+        document.getElementById('createPlist').addEventListener('click', () => {
+            vscode.postMessage({
+                type: 'createPlist',
+                rows: currentRows,
+                cols: currentCols
+            });
+        });
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.type) {
+                case 'setImage':
+                    currentImage = message.image;
+                    const img = document.getElementById('sourceImage');
+                    img.src = message.imageData;
+                    img.onload = () => {
+                        updatePreview();
+                    };
+                    break;
+                case 'error':
+                    vscode.postMessage({ type: 'error', message: message.message });
+                    break;
+            }
+        });
+
+        // Update grid overlay when window is resized
+        window.addEventListener('resize', updateGridOverlay);
+    </script>
+</body>
+</html> 

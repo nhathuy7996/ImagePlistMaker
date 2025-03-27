@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect x="0" y="0" width="128" height="128" rx="24" fill="#2D2D2D"/>
+    
+    <!-- Border -->
+    <rect x="8" y="8" width="112" height="112" rx="20" fill="none" stroke="#007ACC" stroke-width="4"/>
+    
+    <!-- Text -->
+    <text x="64" y="80" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#FFFFFF" text-anchor="middle">PC</text>
+</svg> 

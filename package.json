@@ -1,0 +1,63 @@
+{
+  "name": "image-plist-creator",
+  "displayName": "Plist Creator",
+  "description": "Create plist files from sprite sheets",
+  "version": "0.0.1",
+  "publisher": "nhathuy7996",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nhathuy7996/ImagePlistMaker.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "images/icon.png",
+  "activationEvents": [
+    "onCommand:plist-creator.createPlist"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "plist-creator.createPlist",
+        "title": "Create Plist from Sprite Sheet"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "plist-creator.createPlist",
+          "when": "resourceExtname =~ /\\.(png|jpg|jpeg)$/i",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vscode/vsce": "^2.24.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "image-size": "^2.0.1"
+  }
+}
