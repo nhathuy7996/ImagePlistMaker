@@ -274,10 +274,12 @@
 
         document.getElementById('updatePreview').addEventListener('click', updatePreview);
         document.getElementById('createPlist').addEventListener('click', () => {
+            const rows = parseInt(document.getElementById('rows').value);
+            const cols = parseInt(document.getElementById('cols').value);
             vscode.postMessage({
-                type: 'createPlist',
-                rows: currentRows,
-                cols: currentCols
+                command: 'createPlist',
+                rows: rows,
+                cols: cols
             });
         });
 
@@ -286,11 +288,8 @@
             switch (message.type) {
                 case 'setImage':
                     currentImage = message.image;
-                    const img = document.getElementById('sourceImage');
-                    img.src = message.imageData;
-                    img.onload = () => {
-                        updatePreview();
-                    };
+                    document.getElementById('sourceImage').src = message.imageData;
+                    updatePreview();
                     break;
                 case 'error':
                     vscode.postMessage({ type: 'error', message: message.message });

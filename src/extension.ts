@@ -106,63 +106,61 @@ class PlistCreatorPanel {
             const frameWidth = Math.floor(dimensions.width / cols);
             const frameHeight = Math.floor(dimensions.height / rows);
 
-            const frames: any[] = [];
+            // Create plist XML content
+            let plistContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>frames</key>
+        <dict>`;
+
+            // Add frames
             for (let row = 0; row < rows; row++) {
                 for (let col = 0; col < cols; col++) {
                     const frameName = `frame_${row}_${col}.png`;
-                    frames.push({
-                        frame: {
-                            x: col * frameWidth,
-                            y: row * frameHeight,
-                            w: frameWidth,
-                            h: frameHeight
-                        },
-                        rotated: false,
-                        trimmed: false,
-                        spriteSourceSize: {
-                            x: 0,
-                            y: 0,
-                            w: frameWidth,
-                            h: frameHeight
-                        },
-                        sourceSize: {
-                            w: frameWidth,
-                            h: frameHeight
-                        }
-                    });
+                    plistContent += `
+            <key>${frameName}</key>
+            <dict>
+                <key>frame</key>
+                <string>{{${col * frameWidth},${row * frameHeight},{${frameWidth},${frameHeight}}}}</string>
+                <key>offset</key>
+                <string>{0,0}</string>
+                <key>rotated</key>
+                <false/>
+                <key>sourceColorRect</key>
+                <string>{{0,0},{${frameWidth},${frameHeight}}}</string>
+                <key>sourceSize</key>
+                <string>{${frameWidth},${frameHeight}}</string>
+            </dict>`;
                 }
             }
 
-            const plistContent = {
-                frames: frames.reduce((acc, frame, index) => {
-                    const row = Math.floor(index / cols);
-                    const col = index % cols;
-                    acc[`frame_${row}_${col}.png`] = frame;
-                    return acc;
-                }, {}),
-                metadata: {
-                    format: 3,
-                    textureFileName: path.basename(this.imagePath),
-                    size: {
-                        w: dimensions.width,
-                        h: dimensions.height
-                    },
-                    smartupdate: new Date().toISOString(),
-                    pixelFormat: "RGBA8888",
-                    premultiplyAlpha: false,
-                    realTextureFileName: path.basename(this.imagePath),
-                    textureFormat: "png"
-                }
-            };
+            // Add metadata
+            plistContent += `
+        </dict>
+        <key>metadata</key>
+        <dict>
+            <key>format</key>
+            <integer>2</integer>
+            <key>realTextureFileName</key>
+            <string>${path.basename(this.imagePath)}</string>
+            <key>size</key>
+            <string>{${dimensions.width},${dimensions.height}}</string>
+            <key>smartupdate</key>
+            <string>$TexturePacker:SmartUpdate:${Date.now()}$</string>
+            <key>textureFileName</key>
+            <string>${path.basename(this.imagePath)}</string>
+        </dict>
+    </dict>
+</plist>`;
 
             const saveUri = await vscode.window.showSaveDialog({
                 filters: { 'Property List': ['plist'] },
-                defaultUri: vscode.Uri.file(path.join(path.dirname(this.imagePath), 'sprite.plist'))
+                defaultUri: vscode.Uri.file(path.join(path.dirname(this.imagePath), path.basename(this.imagePath)+'.plist'))
             });
 
             if (saveUri) {
-                const plistString = JSON.stringify(plistContent, null, 2);
-                await fs.promises.writeFile(saveUri.fsPath, plistString);
+                await fs.promises.writeFile(saveUri.fsPath, plistContent);
                 const doc = await vscode.workspace.openTextDocument(saveUri);
                 await vscode.window.showTextDocument(doc);
                 vscode.window.showInformationMessage('Plist file created successfully!');

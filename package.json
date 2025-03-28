@@ -2,7 +2,7 @@
   "name": "image-plist-creator",
   "displayName": "Plist Creator",
   "description": "Create plist files from sprite sheets",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "nhathuy7996",
   "private": true,
   "license": "MIT",
